@@ -46,12 +46,18 @@
 
     (throw (ex-info "Please set a Yo-yo system-fn!" {}))))
 
-(defn start! []
-  (if-not @!latch
-    (binding [*ns* *ns*] ; *ns* seems to have to be thread-bound for refresh to work
-      (tn/refresh :after 'yoyo/do-start!))
+(defn start!
+  ([]
+   (start! {:refresh-all? false}))
 
-    (throw (ex-info "System already started!" {}))))
+  ([{:keys [refresh-all?]}]
+   (if-not @!latch
+     (binding [*ns* *ns*] ; *ns* seems to have to be thread-bound for refresh to work
+       (if refresh-all?
+         (tn/refresh-all :after 'yoyo/do-start!)
+         (tn/refresh :after 'yoyo/do-start!)))
+
+     (throw (ex-info "System already started!" {})))))
 
 (defn stop! []
   (let [latch (m/deref-reset! !latch nil)]
@@ -60,6 +66,10 @@
 
     (boolean latch)))
 
-(defn reload! []
-  (stop!)
-  (start!))
+(defn reload!
+  ([]
+   (reload! {}))
+
+  ([{:keys [refresh-all?] :as opts}]
+   (stop!)
+   (start! opts)))
